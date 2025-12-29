@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>김취준의 압박 면접 도전기</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Malgun Gothic', sans-serif; padding: 20px; display: flex; justify-content: center; }
+        #container { width: 100%; max-width: 800px; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        #screen { white-space: pre-wrap; height: 500px; overflow-y: auto; border: 1px solid #444; padding: 20px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.8; background: #000; color: #ffffff; border-radius: 8px; }
+        .controls { display: flex; flex-direction: column; gap: 12px; min-height: 100px; }
+        button { background: #2a2a2a; color: #fff; border: 1px solid #555; padding: 16px; border-radius: 8px; cursor: pointer; font-size: 1rem; text-align: left; }
+        button:hover { background: #3a3a3a; border-color: #0078d4; color: #0078d4; }
+        .next-btn { background: #0078d4 !important; text-align: center !important; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <h2 style="text-align: center; color: #0078d4;">김취준의 압박면접 도전기</h2>
+    <div id="screen">시스템 로딩 중... 잠시만 기다려 주세요.</div>
+    <div id="controls" class="controls"></div>
+</div>
+
+<script type="py">
+import asyncio
+from pyscript import document
+
+# 원본 스탯
+state = {"trust": 0, "logic": 0, "team": 0}
+def reset_state(): state["trust"], state["logic"], state["team"] = 0, 0, 0
+def add_stat(trust=0, logic=0, team=0):
+    state["trust"] += trust
+    state["logic"] += logic
+    state["team"] += team
+
+def print_to_screen(text):
+    screen = document.querySelector("#screen")
+    if "시스템 로딩 중" in screen.innerText: screen.innerText = ""
+    screen.innerText += f"\n{text}"
+    screen.scrollTop = screen.scrollHeight
+
+# 입력 제어용 전역 변수
+input_received = False
+current_val = None
+
+def on_click_action(val):
+    global input_received, current_val
+    current_val = val
+    input_received = True
+
+async def wait_click(options=None, is_next=False):
+    """버튼이 클릭될 때까지 대기하는 핵심 함수"""
+    global input_received, current_val
+    input_received = False
+    current_val = None
+    
+    btn_container = document.querySelector("#controls")
+    btn_container.innerHTML = ""
+    
+    if is_next:
+        # '다음' 버튼 생성
+        btn = document.createElement("button")
+        btn.innerText = "다음 대사 보기 ▽"
+        btn.className = "next-btn"
+        btn.onclick = lambda e: on_click_action("next")
+        btn_container.appendChild(btn)
+    else:
+        # 선택지 버튼 생성
+        for i, opt in enumerate(options, 1):
+            btn = document.createElement("button")
+            btn.innerText = opt
+            # 클로저 문제 방지를 위해 i 값을 기본 인자로 고정
+            btn.onclick = lambda e, v=str(i): on_click_action(v)
+            btn_container.appendChild(btn)
+    
+    # 클릭될 때까지 비동기로 대기
+    while not input_received:
+        await asyncio.sleep(0.1)
+    
+    btn_container.innerHTML = ""
+    return current_val
+
+async def main_logic():
+    document.querySelector("#screen").innerText = ""
+    print_to_screen("="*40)
+    print_to_screen("김취준의 압박 면접 도전기 ")
+    print_to_screen("="*40)
+    
+    # [프롤로그 원본 텍스트]
+    print_to_screen("\n[ 프롤로그 ]")
+    await wait_click(is_next=True); print_to_screen("(난 5년동안 취준을 하고있는 김취준이다.)")
+    await wait_click(is_next=True); print_to_screen("(그동안 여러번의 서탈과 면탈로 정신이 매우 피폐해졌지..)")
+    await wait_click(is_next=True); print_to_screen("(주변 친구들은 다 대기업에 취업해서 얼굴도 보이지 않는다.)")
+    await wait_click(is_next=True); print_to_screen("(그러나 이런 내게도 천재일우의 기회가 왔다.)")
+    await wait_click(is_next=True); print_to_screen("(바로 누구나 알만한 대기업의 서류 합격.)")
+    await wait_click(is_next=True); print_to_screen("???: 김취준님, 들어오세요.")
+    await wait_click(is_next=True); print_to_screen("(이 위기만 넘긴다면 난 이제 새로운 사람으로 거듭날 수 있다.)")
+    await wait_click(is_next=True); print_to_screen("(아자아자 파이팅 김취준!)")
+    
+    # [질문 1]
+    await wait_click(is_next=True); print_to_screen("\n면접관 : 1분 자기소개 부탁드립니다. ")
+    opts1 = [
+        "1. 저는 새로운 환경에서도 빠르게 구조를 파악하고, 맡은 역할을 끝까지 완성하는 지원자 김취준입니다.",
+        "2. 저는 성실하고 책임감이 강한 강점이 있는 지원자 김취준입니다",
+        "3. 저는 성격이 예민한 편이지만, 맞춰주면 잘하는 지원자 김취준입니다."
+    ]
+    for o in opts1: print_to_screen(o)
+    
+    c = await wait_click(options=opts1)
+    
+    if c == "1":
+        print_to_screen("\n김취준: 저는 새로운 환경에서도 빠르게 구조를 파악하고, 맡은 역할을 끝까지 완성하는 지원자 김취준입니다.")
+        add_stat(trust=1, logic=2, team=1)
+    elif c == "2":
+        print_to_screen("\n김취준: 저는 성실하고 책임감이 강한 강점이 있는 지원자 김취준입니다.")
+        add_stat(trust=0, logic=-1, team=0)
+    else:
+        print_to_screen("\n김취준: 저는 성격이 예민한 편이지만, 맞춰주면 잘하는 지원자 김취준입니다.")
+        add_stat(trust=-2, logic=-1, team=-2)
+
+    # [질문 2]
+    await wait_click(is_next=True); print_to_screen("\n면접관 1: 팀에서 의견 충돌이 났던 경험이 있나요?")
+    opts2 = [
+        "1. 단계에 맞춰 의견을 모으고, 목표를 정리하고 대안을 비교했습니다.",
+        "2. 제가 양보해서 다른분의 의견을 따랐습니다. 팀워크는 협업이 중요하기 때문입니다.",
+        "3. 답답해서 제가 밀어붙였습니다. 그래도 덕분에 A+ 라는 좋은 결과를 받을 수 있었습니다."
+    ]
+    for o in opts2: print_to_screen(o)
+    
+    c = await wait_click(options=opts2)
+    
+    if c == "1":
+        print_to_screen("\n김취준: 단계에 맞춰 의견을 모으고, 목표를 정리하고 대안을 비교했습니다.")
+        add_stat(trust=1, logic=2, team=2)
+    elif c == "2":
+        print_to_screen("\n김취준: 제가 양보해서 다른분의 의견을 따랐습니다. 팀워크는 협업이 중요하기 때문입니다.")
+        add_stat(trust=0, logic=-1, team=0)
+    else:
+        # 게임 오버 처리
+        print_to_screen("\n면접관: 독단적인 태도는 협업에 지장을 줍니다.")
+        await show_game_over("면접관: 독단적인 태도는 협업에 지장을 줍니다.")
+        return
+
+    # [결과]
+    print_to_screen(f"\n[최종 스탯] 신뢰: {state['trust']} | 논리: {state['logic']} | 협업: {state['team']}")
+    await wait_click(is_next=True); print_to_screen("면접관 1: 수고하셨습니다. 면접을 마칩니다.")
+    
+    if (state["trust"] + state["logic"] + state["team"]) >= 4:
+        await wait_click(is_next=True); print_to_screen("=== HAPPY ENDING: 최종 합격! ===")
+    else:
+        await show_game_over("평가 점수 미달로 불합격하였습니다.")
+
+async def show_game_over(reason):
+    print_to_screen("\n" + "="*40)
+    print_to_screen("             GAME OVER              ")
+    print_to_screen("="*40)
+    print_to_screen(f"사유: {reason}")
+    c = await wait_click(options=["1. 다시 도전한다", "2. 종료한다"])
+    if c == "1":
+        reset_state()
+        await main_logic()
+    else:
+        print_to_screen("\n김취준은 오늘도 채용 공고를 닫았다...")
+
+# 시작
+asyncio.ensure_future(main_logic())
+</script>
+</body>
+</html>
