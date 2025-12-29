@@ -2,15 +2,17 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>김취준의 압박 면접 도전기</title>
+    <title>김취준의 압박면접 </title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         body { background-color: #121212; color: #e0e0e0; font-family: 'Malgun Gothic', sans-serif; padding: 20px; display: flex; justify-content: center; }
         #container { width: 100%; max-width: 800px; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
-        #screen { white-space: pre-wrap; height: 500px; overflow-y: auto; border: 1px solid #444; padding: 20px; margin-bottom: 20px; font-size: 1.1rem; line-height: 1.8; background: #000; color: #ffffff; border-radius: 8px; }
+        #screen { white-space: pre-wrap; height: 450px; overflow-y: auto; border: 1px solid #444; padding: 20px; margin-bottom: 10px; font-size: 1.1rem; line-height: 1.8; background: #000; color: #ffffff; border-radius: 8px; }
+        #timer-container { width: 100%; height: 8px; background-color: #333; border-radius: 4px; margin-bottom: 20px; overflow: hidden; display: none; }
+        #timer-bar { width: 100%; height: 100%; background-color: #ff4d4d; transition: width 0.1s linear; }
         .controls { display: flex; flex-direction: column; gap: 12px; min-height: 100px; }
-        button { background: #2a2a2a; color: #fff; border: 1px solid #555; padding: 16px; border-radius: 8px; cursor: pointer; font-size: 1rem; text-align: left; }
+        button { background: #2a2a2a; color: #fff; border: 1px solid #555; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1rem; text-align: left; }
         button:hover { background: #3a3a3a; border-color: #0078d4; color: #0078d4; }
         .next-btn { background: #0078d4 !important; text-align: center !important; font-weight: bold; }
     </style>
@@ -18,30 +20,17 @@
 <body>
 
 <div id="container">
-    <h2 style="text-align: center; color: #0078d4;">김취준의 압박면접 도전기</h2>
-    <div id="screen">시스템 로딩 중... 잠시만 기다려 주세요.</div>
+    <h2 style="text-align: center; color: #0078d4;">김취준의 압박면접 </h2>
+    <div id="timer-container"><div id="timer-bar"></div></div>
+    <div id="screen">시스템 부팅 중... 잠시만 기다려 주세요.</div>
     <div id="controls" class="controls"></div>
 </div>
 
 <script type="py">
 import asyncio
 from pyscript import document
+import time
 
-# 원본 스탯
-state = {"trust": 0, "logic": 0, "team": 0}
-def reset_state(): state["trust"], state["logic"], state["team"] = 0, 0, 0
-def add_stat(trust=0, logic=0, team=0):
-    state["trust"] += trust
-    state["logic"] += logic
-    state["team"] += team
-
-def print_to_screen(text):
-    screen = document.querySelector("#screen")
-    if "시스템 로딩 중" in screen.innerText: screen.innerText = ""
-    screen.innerText += f"\n{text}"
-    screen.scrollTop = screen.scrollHeight
-
-# 입력 제어용 전역 변수
 input_received = False
 current_val = None
 
@@ -50,121 +39,209 @@ def on_click_action(val):
     current_val = val
     input_received = True
 
-async def wait_click(options=None, is_next=False):
-    """버튼이 클릭될 때까지 대기하는 핵심 함수"""
+def print_to_screen(text):
+    screen = document.querySelector("#screen")
+    if "시스템 부팅 중" in screen.innerText: screen.innerText = ""
+    screen.innerText += f"\n{text}"
+    screen.scrollTop = screen.scrollHeight
+
+async def wait_click(options=None, is_next=False, timeout=5, use_timer=True):
     global input_received, current_val
     input_received = False
     current_val = None
     
     btn_container = document.querySelector("#controls")
+    timer_container = document.querySelector("#timer-container")
+    timer_bar = document.querySelector("#timer-bar")
     btn_container.innerHTML = ""
     
     if is_next:
-        # '다음' 버튼 생성
+        timer_container.style.display = "none"
         btn = document.createElement("button")
         btn.innerText = "다음 대사 보기 ▽"
         btn.className = "next-btn"
         btn.onclick = lambda e: on_click_action("next")
         btn_container.appendChild(btn)
     else:
-        # 선택지 버튼 생성
         for i, opt in enumerate(options, 1):
             btn = document.createElement("button")
             btn.innerText = opt
-            # 클로저 문제 방지를 위해 i 값을 기본 인자로 고정
             btn.onclick = lambda e, v=str(i): on_click_action(v)
             btn_container.appendChild(btn)
-    
-    # 클릭될 때까지 비동기로 대기
+        
+        if use_timer:
+            timer_container.style.display = "block"
+            timer_bar.style.width = "100%"
+            start_time = time.time()
+            
+            while not input_received:
+                elapsed = time.time() - start_time
+                remaining = (timeout - elapsed) / timeout
+                if remaining <= 0:
+                    timer_bar.style.width = "0%"
+                    timer_container.style.display = "none"
+                    return "timeout"
+                timer_bar.style.width = f"{remaining * 100}%"
+                await asyncio.sleep(0.05)
+        else:
+            timer_container.style.display = "none"
+
     while not input_received:
         await asyncio.sleep(0.1)
     
+    timer_container.style.display = "none"
     btn_container.innerHTML = ""
     return current_val
 
-async def main_logic():
-    document.querySelector("#screen").innerText = ""
-    print_to_screen("="*40)
-    print_to_screen("김취준의 압박 면접 도전기 ")
-    print_to_screen("="*40)
-    
-    # [프롤로그 원본 텍스트]
-    print_to_screen("\n[ 프롤로그 ]")
-    await wait_click(is_next=True); print_to_screen("(난 5년동안 취준을 하고있는 김취준이다.)")
-    await wait_click(is_next=True); print_to_screen("(그동안 여러번의 서탈과 면탈로 정신이 매우 피폐해졌지..)")
-    await wait_click(is_next=True); print_to_screen("(주변 친구들은 다 대기업에 취업해서 얼굴도 보이지 않는다.)")
-    await wait_click(is_next=True); print_to_screen("(그러나 이런 내게도 천재일우의 기회가 왔다.)")
-    await wait_click(is_next=True); print_to_screen("(바로 누구나 알만한 대기업의 서류 합격.)")
-    await wait_click(is_next=True); print_to_screen("???: 김취준님, 들어오세요.")
-    await wait_click(is_next=True); print_to_screen("(이 위기만 넘긴다면 난 이제 새로운 사람으로 거듭날 수 있다.)")
-    await wait_click(is_next=True); print_to_screen("(아자아자 파이팅 김취준!)")
-    
-    # [질문 1]
-    await wait_click(is_next=True); print_to_screen("\n면접관 : 1분 자기소개 부탁드립니다. ")
-    opts1 = [
-        "1. 저는 새로운 환경에서도 빠르게 구조를 파악하고, 맡은 역할을 끝까지 완성하는 지원자 김취준입니다.",
-        "2. 저는 성실하고 책임감이 강한 강점이 있는 지원자 김취준입니다",
-        "3. 저는 성격이 예민한 편이지만, 맞춰주면 잘하는 지원자 김취준입니다."
-    ]
-    for o in opts1: print_to_screen(o)
-    
-    c = await wait_click(options=opts1)
-    
+async def game_over(reason):
+    document.querySelector("#timer-container").style.display = "none"
+    print_to_screen("\n" + "="*40 + "\n            GAME OVER              \n" + "="*40)
+    print_to_screen(f" 탈락 사유: {reason}")
+    c = await wait_click(options=["1. 처음부터 다시 도전한다", "2. 종료한다"], use_timer=False)
     if c == "1":
-        print_to_screen("\n김취준: 저는 새로운 환경에서도 빠르게 구조를 파악하고, 맡은 역할을 끝까지 완성하는 지원자 김취준입니다.")
-        add_stat(trust=1, logic=2, team=1)
-    elif c == "2":
-        print_to_screen("\n김취준: 저는 성실하고 책임감이 강한 강점이 있는 지원자 김취준입니다.")
-        add_stat(trust=0, logic=-1, team=0)
-    else:
-        print_to_screen("\n김취준: 저는 성격이 예민한 편이지만, 맞춰주면 잘하는 지원자 김취준입니다.")
-        add_stat(trust=-2, logic=-1, team=-2)
-
-    # [질문 2]
-    await wait_click(is_next=True); print_to_screen("\n면접관 1: 팀에서 의견 충돌이 났던 경험이 있나요?")
-    opts2 = [
-        "1. 단계에 맞춰 의견을 모으고, 목표를 정리하고 대안을 비교했습니다.",
-        "2. 제가 양보해서 다른분의 의견을 따랐습니다. 팀워크는 협업이 중요하기 때문입니다.",
-        "3. 답답해서 제가 밀어붙였습니다. 그래도 덕분에 A+ 라는 좋은 결과를 받을 수 있었습니다."
-    ]
-    for o in opts2: print_to_screen(o)
-    
-    c = await wait_click(options=opts2)
-    
-    if c == "1":
-        print_to_screen("\n김취준: 단계에 맞춰 의견을 모으고, 목표를 정리하고 대안을 비교했습니다.")
-        add_stat(trust=1, logic=2, team=2)
-    elif c == "2":
-        print_to_screen("\n김취준: 제가 양보해서 다른분의 의견을 따랐습니다. 팀워크는 협업이 중요하기 때문입니다.")
-        add_stat(trust=0, logic=-1, team=0)
-    else:
-        # 게임 오버 처리
-        print_to_screen("\n면접관: 독단적인 태도는 협업에 지장을 줍니다.")
-        await show_game_over("면접관: 독단적인 태도는 협업에 지장을 줍니다.")
-        return
-
-    # [결과]
-    print_to_screen(f"\n[최종 스탯] 신뢰: {state['trust']} | 논리: {state['logic']} | 협업: {state['team']}")
-    await wait_click(is_next=True); print_to_screen("면접관 1: 수고하셨습니다. 면접을 마칩니다.")
-    
-    if (state["trust"] + state["logic"] + state["team"]) >= 4:
-        await wait_click(is_next=True); print_to_screen("=== HAPPY ENDING: 최종 합격! ===")
-    else:
-        await show_game_over("평가 점수 미달로 불합격하였습니다.")
-
-async def show_game_over(reason):
-    print_to_screen("\n" + "="*40)
-    print_to_screen("             GAME OVER              ")
-    print_to_screen("="*40)
-    print_to_screen(f"사유: {reason}")
-    c = await wait_click(options=["1. 다시 도전한다", "2. 종료한다"])
-    if c == "1":
-        reset_state()
         await main_logic()
     else:
         print_to_screen("\n김취준은 오늘도 채용 공고를 닫았다...")
 
-# 시작
+async def main_logic():
+    document.querySelector("#screen").innerText = ""
+    print_to_screen("="*40 + "\n김취준의 압박면접 도전기\n" + "="*40)
+    
+    await wait_click(is_next=True); print_to_screen("(난 5년동안 취준을 하고있는 김취준이다.)")
+    await wait_click(is_next=True); print_to_screen("(그동안 여러번의 서탈과 면탈로 정신이 매우 피폐해졌지..)")
+    await wait_click(is_next=True); print_to_screen("(주변 친구들은 다 대기업에 취업해서 얼굴도 보이지 않는다.)")
+    await wait_click(is_next=True); print_to_screen("(그러나 이런 내게도 천재일우의 기회가 왔다.)")
+    await wait_click(is_next=True); print_to_screen("(바로 삼성전자 서류 합격.)")
+    await wait_click(is_next=True); print_to_screen("???: 김취준님, 들어오세요.")
+    await wait_click(is_next=True); print_to_screen("(이 위기만 넘긴다면 난 이제 새로운 사람으로 거듭날 수 있다.)")
+    await wait_click(is_next=True); print_to_screen("(아자아자 파이팅 김취준!)")
+
+    questions = [
+        {"q": "면접관: 1분 자기소개 부탁드립니다.", 
+         "opts": ["1. 다수의 협업 경험으로 새로운 환경에서 구조를 파악하고 끝까지 완수하는 김취준입니다.", "2. 성실하고 책임감이 강한 것이 강점인 김취준입니다.", "3. 성격이 예민한 편이지만 맞춰주면 잘하는 김취준입니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+        
+        {"q": "면접관: 팀에서 의견 충돌이 났던 경험과 문제를 해결했던 방법이 있나요?",
+         "opts": ["1. 제가 양보하여 다른분의 의견을 따랐습니다.", "2. 목표와 대안을 데이터로 비교해 합의점을 찾았습니다.", "3. 제 의견이 맞다고 판단되어 끝까지 밀어붙였습니다."],
+         "fail": ["1", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 상사가 비윤리적인 지시를 내린다면 어떻게 하시겠습니까?",
+         "opts": ["1. 즉시 감사팀이나 외부에 신고하겠습니다.", "2. 상사의 지시이므로 일단 따르겠습니다.", "3. 먼저 회사 규정을 확인하고 조심스럽게 재고를 요청하겠습니다."],
+         "fail": "2", "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 본인의 가장 큰 단점은 무엇이라고 생각하시나요?",
+         "opts": ["1. 완벽을 기하다 속도가 늦어질 때가 있어 우선순위를 메모하며 보완합니다.", "2. 저는 단점이 없는 것이 단점입니다.", "3. 욱하는 성격이 조금 있지만 금방 풀립니다. 또한 이를 통해 처리 속도에 가속을 가할 수 있습니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 희망하지 않는 부서에 배치된다면 어떻게 하시겠습니까?",
+         "opts": ["1. 일단 다니면서 이직 준비를 할 것 같습니다.", "2. 제 전공과 맞지 않으니 재배치를 요구하겠습니다.", "3. 그 부서에서도 제가 기여할 점을 찾아 전문성을 쌓겠습니다."],
+         "fail": ["2", "1"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 본인이 팀장인데 팀원이 업무 지시를 거부한다면 어떻게 하시겠습니까?",
+         "opts": ["1. 이유를 경청하고 업무의 필요성을 다시 논리적으로 설득하겠습니다.", "2. 팀장의 권위로 강하게 징계하겠다고 협박하겠습니다.", "3. 다른 팀원에게 일을 떠넘기겠습니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 우리 회사 제품 중 아쉬운 점이 있다면?",
+         "opts": ["1. 기술력은 높으나 실사용에 있어 편의성이 많이 아쉽습니다.", "2. 개인적으로 완벽해서 아쉬운 점이 없다고 생각합니다.", "3. 다른 회사 제품만 써서 잘 모르겠습니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 동료의 실수를 발견했다면 어떻게 하겠습니까?",
+         "opts": ["1. 즉시 상사에게 보고해서 상사가 문제를 고칠 수 있도록 도울것입니다.", "2. 동료가 스스로 수정하도록 조용히 돕고 재발 방지를 논의하겠습니다.", "3. 모르는 척 넘어가는 것이 동료애라고 생각합니다."],
+         "fail": ["3", "1"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+
+
+        {"q": "면접관: 업무상 야근이 잦아진다면 어떻게 하시겠습니까?",
+         "opts": ["1. 효율을 높여 정시에 끝내려 노력할 것입니다.", "2. 야근 수당만 준다면 얼마든지 하겠습니다.", "3. 저는 밤 새는것을 좋아합니다. 야근도 잘 해낼 수 있습니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 상사와 의견이 다를 때 본인만의 대처법이 있나요?",
+         "opts": ["1. 상사의 의도를 파악하고 제 의견을 데이터로 정중히 제안하겠습니다.", "2. 상사가 틀렸으니 끝까지 제 주장을 관철시키겠습니다.", "3. 상사이므로, 신입으로서 상사의 말을 따를것입니다."],
+         "fail": ["3", "2"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 창의적인 성과를 냈던 경험이 있습니까?",
+         "opts": ["1. 저는 창의보다는 기존 프로세스를 따라 효율적으로 협업하는것이 중요하다고 생각합니다.", "2. 창의적인 건 예술가들의 영역이라고 생각합니다.", "3. 기존 프로세스의 불편함을 발견해 효율적으로 바꾼 경험이 있습니다."],
+         "fail": ["2", "1"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 입사 후 10년 뒤 목표가 있나요?",
+         "opts": ["1. 해당 직무의 스페셜리스트가 되어 후배들의 멘토가 되고 싶습니다.", "2. 임원이 되어 큰 돈을 벌고 있을 것입니다.", "3. 정년까지 회사에 있으며, 행복하게 보내는것이 목표입니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 협업에서 가장 중요한 가치는 무엇입니까?",
+         "opts": ["1. 맡은 임무를 착실하게 해내고 커뮤니케이션을 최소화하는 것입니다.", "2. 상호 신뢰와 원활한 커뮤니케이션이라고 생각합니다.", "3. 뛰어난 리더 한 명의 존재 유무 입니다."],
+         "fail": ["1", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 경쟁사에도 지원했나요? 왜 우리여야 하죠?",
+         "opts": ["1. 경쟁사의 가치관은 제 니즈와 맞지 않았기 때문입니다. ", "2. 기술 혁신에 가장 과감한 문화가 제 도전정신과 맞기 때문입니다.", "3. 그냥 대기업이라서 다 지원해봤습니다."],
+         "fail": ["3", "1"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 갈등 시 감정 컨트롤은 어떻게 하나요?",
+         "opts": ["1. 상황을 객관적으로 분석하려 노력하며, 잠시 여유를 갖고 대화합니다.", "2. 화가 나면 얼굴에 바로 드러나는 솔직한 성격입니다.", "3. 그냥 무조건 꾹 참았다가 나중에 술로 풉니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 자신보다 나이 어린 상사를 만난다면 어떻게 하실건가요?",
+         "opts": ["1. 나이와 상관없이 직급과 전문성을 존중하며 협력하겠습니다.", "2. 예의만 차려준다면 저도 예의를 지키겠습니다.", "3. 솔직히 자존심이 상해서 적응이 힘들 것 같습니다."],
+         "fail": "3", "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 실패했던 경험과 그 경험에서 배운 점이 있나요?",
+         "opts": ["1. 주식 투자를 실패해서 돈을 많이 잃어봤지만 이를 통해 자산 관리의 중요성을 배웠습니다.", "2. 살면서 실패해 본 적이 없습니다.", "3. 낙방 경험을 통해 철저한 자기 분석과 인내심의 중요성을 배웠습니다."],
+         "fail": ["2", "1"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 본인만의 스트레스 해소법이 있나요?",
+         "opts": ["1. 하루의 재충전을 위해 잠을 잡니다.", "2. 운동이나 독서 취미를 통해 에너지를 재충전합니다.", "3. 스트레스는 원래 안 받는 무딘 성격입니다."],
+         "fail": ["1", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+         {"q": "면접관: 여자친구, 남자친구 있나요?",
+         "opts": ["1. 그런걸 왜 물어보시죠? 이유를 모르겠네요.", "2. 5년이나 취준을 해서 아직 없습니다.", "3. 아직 없습니다."],
+         "fail": ["1", "2"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+
+        {"q": "면접관: 회사가 본인을 뽑아야 하는 가장 큰 이유가 있을까요?",
+         "opts": ["1. 직무에 필요한 역량과 끝까지 포기하지 않는 끈기가 있기 때문입니다.", "2. 5년이나 취준을 해서 이제는 뽑아줄 때가 된 것 같습니다.", "3. 제가 성격이 좋아서 사무실 분위기도 살고, 회식 분위기도 살릴 수 있습니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+        {"q": "면접관: 회사에 대해 궁금한점이나 질문사항 있으신가요?",
+         "opts": ["1. 면접관님 연봉은 얼마정도 되나요?", "2. 구내식당은 어디에 위치해 있나요?", "3. 회사의 성장 방향성에 대해서 알고싶습니다."],
+         "fail": ["2", "1"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+         {"q": "면접관: 왜 5년이나 취업 준비를 하신거죠?",
+         "opts": ["1. 제가 큰 병에 걸렸었습니다. 항암치료를 하다보니 시간이 5년이나 지났습니다.", "2. 이 회사가 저를 뽑아줄때까지 기다렸습니다. .", "3. 방향을 급하게 정하기보다, 진로와 경쟁력을 제대로 준비하고 싶었습니다."],
+         "fail": ["2", "3"], "reason": "김취준은 그대로 1시간동안 병풍이 되어버렸다."},
+
+
+        {"q": "면접관: 마지막으로 하고 싶은 말이 따로 있나요?",
+         "opts": ["1. 기회를 주셔서 감사합니다. 현업에서 실력으로 기여하고 싶습니다.", "2. 제발 뽑아주세요. 저 진짜 열심히 하겠습니다.", "3. 면접비는 언제 입금되나요?"],
+         "fail": ["2", "3"], "reason": "김취준은 눈을 질끈 감았다."}
+    ]
+
+    for item in questions:
+        print_to_screen("\n" + item["q"])
+        for o in item["opts"]: print_to_screen(o)
+        
+        c = await wait_click(options=item["opts"], timeout=5)
+        
+        if c == "timeout":
+            await game_over("시간 내에 대답을 하지 못해 면접관이 서류를 덮었습니다.")
+            return
+        
+        is_fail = False
+        if isinstance(item["fail"], list):
+            if c in item["fail"]: is_fail = True
+        else:
+            if c == item["fail"]: is_fail = True
+            
+        if is_fail:
+            await game_over(item["reason"])
+            return
+        
+        print_to_screen("\n김취준: (침착하게 대답을 마쳤다.)")
+        await wait_click(is_next=True); print_to_screen("면접관: 네, 좋습니다. 다음 질문 드릴게요.")
+
+    print_to_screen("\n" + "*"*50 + "\n            최종 결과 발표             \n" + "*"*50)
+    await wait_click(is_next=True); print_to_screen("띠링! 문자 메시지가 도착했습니다.")
+    await wait_click(is_next=True); print_to_screen("축하합니다! 김취준님은 모든 압박을 이겨내고 최종 합격하셨습니다.")
+    print_to_screen("\n=== HAPPY ENDING: 5년의 인고 끝에, 드디어 직장인이 되었다! ===")
+
 asyncio.ensure_future(main_logic())
 </script>
 </body>
