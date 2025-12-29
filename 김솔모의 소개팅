@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>김솔모의 소개팅 도전기 </title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Malgun Gothic', sans-serif; padding: 20px; display: flex; justify-content: center; }
+        #container { width: 100%; max-width: 800px; background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        #screen { white-space: pre-wrap; height: 450px; overflow-y: auto; border: 1px solid #444; padding: 20px; margin-bottom: 10px; font-size: 1.1rem; line-height: 1.8; background: #000; color: #ffffff; border-radius: 8px; }
+        #timer-container { width: 100%; height: 8px; background-color: #333; border-radius: 4px; margin-bottom: 20px; overflow: hidden; display: none; }
+        #timer-bar { width: 100%; height: 100%; background-color: #ff4d4d; transition: width 0.1s linear; }
+        .controls { display: flex; flex-direction: column; gap: 12px; min-height: 100px; }
+        button { background: #2a2a2a; color: #fff; border: 1px solid #555; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1rem; text-align: left; }
+        button:hover { background: #3a3a3a; border-color: #0078d4; color: #0078d4; }
+        .next-btn { background: #0078d4 !important; text-align: center !important; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <h2 style="text-align: center; color: #0078d4;">김솔모의 소개팅 도전기 </h2>
+    <div id="timer-container"><div id="timer-bar"></div></div>
+    <div id="screen">시스템 부팅 중... 잠시만 기다려 주세요.</div>
+    <div id="controls" class="controls"></div>
+</div>
+
+<script type="py">
+import asyncio
+from pyscript import document
+import time
+
+input_received = False
+current_val = None
+
+def on_click_action(val):
+    global input_received, current_val
+    current_val = val
+    input_received = True
+
+def print_to_screen(text):
+    screen = document.querySelector("#screen")
+    if "시스템 부팅 중" in screen.innerText: screen.innerText = ""
+    screen.innerText += f"\n{text}"
+    screen.scrollTop = screen.scrollHeight
+
+async def wait_click(options=None, is_next=False, timeout=5, use_timer=True):
+    global input_received, current_val
+    input_received = False
+    current_val = None
+    
+    btn_container = document.querySelector("#controls")
+    timer_container = document.querySelector("#timer-container")
+    timer_bar = document.querySelector("#timer-bar")
+    btn_container.innerHTML = ""
+    
+    if is_next:
+        timer_container.style.display = "none"
+        btn = document.createElement("button")
+        btn.innerText = "다음 대사 보기 ▽"
+        btn.className = "next-btn"
+        btn.onclick = lambda e: on_click_action("next")
+        btn_container.appendChild(btn)
+    else:
+        for i, opt in enumerate(options, 1):
+            btn = document.createElement("button")
+            btn.innerText = opt
+            btn.onclick = lambda e, v=str(i): on_click_action(v)
+            btn_container.appendChild(btn)
+        
+        if use_timer:
+            timer_container.style.display = "block"
+            timer_bar.style.width = "100%"
+            start_time = time.time()
+            
+            while not input_received:
+                elapsed = time.time() - start_time
+                remaining = (timeout - elapsed) / timeout
+                if remaining <= 0:
+                    timer_bar.style.width = "0%"
+                    timer_container.style.display = "none"
+                    return "timeout"
+                timer_bar.style.width = f"{remaining * 100}%"
+                await asyncio.sleep(0.05)
+        else:
+            timer_container.style.display = "none"
+
+    while not input_received:
+        await asyncio.sleep(0.1)
+    
+    timer_container.style.display = "none"
+    btn_container.innerHTML = ""
+    return current_val
+
+async def game_over(reason):
+    document.querySelector("#timer-container").style.display = "none"
+    print_to_screen("\n" + "="*40 + "\n            GAME OVER              \n" + "="*40)
+    print_to_screen(f" 탈락 사유: {reason}")
+    c = await wait_click(options=["1. 처음부터 다시 도전한다", "2. 종료한다"], use_timer=False)
+    if c == "1":
+        await main_logic()
+    else:
+        print_to_screen("\n김솔모는 결국 이번년도에도 모솔을 탈출하지 못했다...")
+
+async def main_logic():
+    document.querySelector("#screen").innerText = ""
+    print_to_screen("="*40 + "\n김솔모의 소개팅 도전기\n" + "="*40)
+    
+    await wait_click(is_next=True); print_to_screen("(난 25년차 모솔 김솔모다. )")
+    await wait_click(is_next=True); print_to_screen("(최근 한 친구가 자신의 과 동기인 미인씨를 소개시켜줬다.)")
+    await wait_click(is_next=True); print_to_screen("(사진을 보니 그녀는 엄청난 미녀다...)")
+    await wait_click(is_next=True); print_to_screen("(내게 천재일우의 기회가 왔다.)")
+    await wait_click(is_next=True); print_to_screen("(이번 소개팅으로 미인씨를 내 여자친구로 만들겠어!)")
+    await wait_click(is_next=True); print_to_screen(" 띠링! 문자 메세지가 도착하였습니다.")
+    await wait_click(is_next=True); print_to_screen("(김미인: 솔모씨, 이번주 일요일에 봐요!)")
+    await wait_click(is_next=True); print_to_screen("(아자아자 파이팅 김솔모!)")
+
+    questions = [
+        {"q": "안녕하세요! 솔모씨. 만나서 반가워요. ", 
+         "opts": ["1.만나서 반갑습니다! 실물이 훨씬 예쁘시네요.", "2. 왜 저한테 친절하세요?", "3. 먼저 인사를 하시네요. 10점 드릴게요."],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+        
+        {"q": "여기 차 많이 막히던데, 어떻게 오셨어요?",
+         "opts": ["1. 제가 스포츠카 오너라서요. 이정도 거리는 가까웠어요 나중에 타보실래요?.", "2. 약속을 위해 좀 일찍 나왔습니다. 생각보다 금방 왔어요. ", "3. 그건 제 개인 프라이버시라 알려드리기 곤란합니다."],
+         "fail": ["1", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "우리, 카페갈까요? ! 카페 괜찮으세요?",
+         "opts": ["1. 가시죠. 제가 좋은곳 알아놨습니다 ㅎㅎ", "2. 제가 커피를 안좋아해서요. 배려가 부족하신것 같네요. "3. 무슨 카페에요, 요 앞에 국밥집 있어요."],
+         "fail": ["2","3"] "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "쉬는 날엔 주로 뭐 하세요?",
+         "opts": ["1. 영화를 보거나 카페 가는 걸 좋아해요.", "2. 제 쉬는 날은 제건데요? ", "3. 알면 다쳐 꼬맹아"],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "일은 어떤 쪽으로 하고 계세요?",
+         "opts": ["1.이런거, 민감한 개인정보인거 알고계시죠? .", "2. 회사 사람들 다 멍청해서 일이 힘들어요.", "3. 반도체쪽 일 하고 있습니다."],
+         "fail": ["2", "1"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "일하면서 힘들 땐 어떻게 풀어요?",
+         "opts": ["1. 그럴땐 운동을 해요. 스트레스가 확 풀리거든요.", "2. 힘들어도 해야죠 그럼 어떡해요", "3.남자답지 않게 뭘 힘들다고 찡찡거려요"],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "혹시 연애는 해보셨어요?",
+         "opts": ["1. 연애 경험은 많지 않지만.. 전 진중한 만남을 원해요.", "2. 그런건 왜 물어보세요 교양 없게.", "3. 미인씨는 전남자친구 10명 있으시죠?."],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "이상형 같은 건 있으세요?",
+         "opts": ["1. 카리나 얼굴에, 유나 몸매 정도면 만족할것 같아요.", "2. 카구야님은 고백받고 싶어 아세요? 거기에 나오는 ,,,,.", "3. 저와 심리적으로 잘 맞고 말이 잘 통하는 사람이에요."],
+         "fail": ["3", "1"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+
+
+        {"q": "상대가 웃으며 이야기를 듣고 있다.",
+         "opts": ["1. 이야기를 잘 들어주시니 편하네요.", "2. 왜 저 비웃으세요?", "3. 저 재밌는 얘기 한 적 없는데요 웃음코드 특이하시네."],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "성격은 어떤 편이세요?",
+         "opts": ["1. 차분한 편이고 배려하려고 해요.", "2. 예민해요. 맞출 수 있으세요? ", "3. 제 성격이야 어떻든 왜요."],
+         "fail": ["3", "2"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "제 첫인상 어떤것 같아요?",
+         "opts": ["1. 솔직히 좀 별로네요 네로같은 내 마음의 별로", "2. 사귈만 해요. ", "3. 제 이상형이라서 놀랐습니다."],
+         "fail": ["2", "1"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+         {"q": "면접관: 실패했던 경험과 그 경험에서 배운 점이 있나요?",
+         "opts": ["1. 주식 투자를 실 패해서 돈을 많이 잃어봤지만 이를 통해 자산 관리의 중요성을 배웠습니다.", "2. 살면서 실패해 본 적이 없습니다.", "3. 낙방 경험을 통해 철저한 자기 분석과 인내심의 중요성을 배웠습니다."],
+         "fail": ["2", "1"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+
+        {"q": "연애에서 가장 중요하다고 생각하는 건 뭔가요?",
+         "opts": ["1. 신뢰와 소통이요. ", "2. 사나이의 뜨거운 심장과 사랑이라고 생각합니다.", "3. 그런게 뭐가 중요해요 일단 사귀죠 좋아해요."],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "카페에서 시간이 꽤 흘렀다.....",
+         "opts": ["1.아 저 약속있는데 왜 시간 안알려주셨어요.", "2. 오늘 시간 정말 빨리 갔네요.", "3. 지금 몇시게요~ 화성"시"~."],
+         "fail": ["1", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "다음엔 뭐 하면 좋을까요?",
+         "opts": ["1. 그걸 왜 저한테 물으세요 ", "2. 다음에 같이 산책이나 영화 보실래요? .", "3. 그런것도 계획 안하시고 나오시나요 보통?"],
+         "fail": ["3", "1"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "헤어질 시간이 다가왔다.",
+         "opts": ["1. 오늘 즐거웠어요. 다음에 또 뵐 수 있을까요?", "2. 오늘 총점은 90점이네요 와우 통과! 다음에 만나드릴게요.", "3. 미인씨는 화장실도 안가세요? 혹시 요정?"],
+         "fail": ["2", "3"], "reason": "그녀가 화장실에 간 뒤로 오지 않아 결국 3시간의 기다림 끝에 귀가하였다."},
+
+        {"q": "집에 돌아온 후, 메시지를 보낼까 고민 중이다.",
+         "opts": ["1. 보낸다. ", "2. 보류한다.", "3.보내지 않는다."],
+         "fail": ["2","3"], "reason": "결국 난 그녀를 평생 마음속에서 짝사랑 하기로 하였다.. god bay 내 꿈 속의 그녀....."},
+
+
+
+    for item in questions:
+        print_to_screen("\n" + item["q"])
+        for o in item["opts"]: print_to_screen(o)
+        
+        c = await wait_click(options=item["opts"], timeout=5)
+        
+        if c == "timeout":
+            await game_over("그녀의 눈에서 흥미가 떨어지더니 화장실에 간 뒤로 돌아오지 않았다.")
+            return
+        
+        is_fail = False
+        if isinstance(item["fail"], list):
+            if c in item["fail"]: is_fail = True
+        else:
+            if c == item["fail"]: is_fail = True
+            
+        if is_fail:
+            await game_over(item["reason"])
+            return
+        
+        print_to_screen("\n김솔모: (침착하게 대답을 마쳤다.)")
+   
+    print_to_screen("\n" + "*"*50 + "\n            미연씨            \n" + "*"*50)
+    await wait_click(is_next=True); print_to_screen("띠링! 문자 메시지가 도착했습니다.")
+    await wait_click(is_next=True); print_to_screen("솔모씨! 우리 내일 함께 영화볼래요? ")
+    print_to_screen("\n=== HAPPY ENDING: 25년의 인고 끝에, 드디어 내게도 봄바람이 분다! ===")
+
+asyncio.ensure_future(main_logic())
+</script>
+</body>
+</html>
